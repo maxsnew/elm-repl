@@ -68,8 +68,28 @@ reformatJS :: String -> String -> IO ()
 reformatJS input tempJS =
   do rts <- BS.readFile Elm.runtime
      src <- BS.readFile tempJS
-     BS.length src `seq` BS.writeFile tempJS (BS.concat [rts,src,out])
+     BS.length src `seq` BS.writeFile tempJS (BS.concat [docHack, rts,src,out])
   where
+    docHack = BSC.unlines
+      [ "var docElt = {"
+      , "    appendChild: function(_) { return {} }"
+      , "  , removeChild: function(_) { return {} }"
+      , "  , style: {}"
+      , "  , visibility: {}"
+      , "  , scrollLeft: 1"
+      , "  , scrollTop:  1"
+      , "  , innerHtml: {}"
+      , "  };"
+      , "var document = document || { "
+      , "  createElement: function(_) { return {} }"
+      , ", body: docElt"
+      , ", documentElement: docElt"
+      , ", head: docElt"
+      , ", createEvent: function(_) { return {} }"
+      , ", dispatchEvent: function(_) { return {} }"
+      , ", addEventListener: function(_1, _2) { return {} }"
+      , "};"
+      ]
     out = BS.concat
           [ "process.on('uncaughtException', function(err) {\n"
           , "  process.stderr.write(err.toString());\n"
