@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Evaluator where
 
+import Control.Lens
 import qualified Data.Char             as Char
 import qualified Data.ByteString.Char8 as BSC
 import qualified Data.ByteString       as BS
@@ -27,8 +28,8 @@ evalPrint input | otherwise =
   do modify $ Env.insert input
      env <- get
      liftIO $ writeFile tempElm $ Env.toElm env
-     let elmArgs = Env.flags env ++ ["--make", "--only-js", "--print-types", tempElm]
-     success <- liftIO . runCmdWithCallback (Env.compilerPath env) elmArgs $ \types -> do
+     let elmArgs = (env^.Env.flags) ++ ["--make", "--only-js", "--print-types", tempElm]
+     success <- liftIO . runCmdWithCallback (env^.Env.compilerPath) elmArgs $ \types -> do
        reformatJS input tempJS
        runCmdWithCallback "node" nodeArgs $ \value' ->
            let value = BSC.init value'

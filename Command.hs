@@ -1,9 +1,10 @@
 module Command (runCommand)
        where
 
+import Control.Lens
 import Data.Functor             ((<$>), (<$))
 import Control.Monad.Trans      (liftIO)
-import Control.Monad.State      (get, modify)
+import Control.Monad.State      (modify)
 import System.Exit              (ExitCode, exitSuccess)
 import Text.Parsec hiding (getInput)
 
@@ -38,29 +39,27 @@ handleCommand command =
       Exit      -> Just <$> liftIO exitSuccess
       Help      -> display helpInfo
       InfoFlags -> display flagsInfo
-      ListFlags -> display . unlines . Env.flags =<< get
+      ListFlags -> display . unlines =<< use Env.flags
 
-      AddFlag flag -> modifyIfPresent True flag "Added " "Flag already added!" $ \env ->
-        env { Env.flags = Env.flags env ++ [flag] }
+      AddFlag flag ->
+        modifyIfPresent True  flag "Added "        "Flag already added!" (Env.flags %= flip snoc flag)
+      RemoveFlag flag ->
+        modifyIfPresent False flag "Removed flag " "No such flag."       (Env.flags %= List.delete flag)
 
-      RemoveFlag flag -> modifyIfPresent False flag "Removed flag " "No such flag." $ \env ->
-        env {Env.flags = List.delete flag $ Env.flags env}
-
-      Reset -> modifyAlways "Environment Reset" (Env.empty . Env.compilerPath)
-      ClearFlags -> modifyAlways "All flags cleared" $ \env ->
-        env {Env.flags = []}
+      Reset -> modifyAlways "Environment Reset" (modify $ Env.empty . (view Env.compilerPath))
+      ClearFlags -> modifyAlways "All flags cleared" $ Env.flags .= []
 
   where display msg = Nothing <$ (liftIO . putStrLn $ msg)
         modifyIfPresent b flag msgSuc msgFail mod = do
-          env <- get
-          if (not b) `xor` (flag `elem` Env.flags env)
+          isElem <- elem flag <$> use Env.flags
+          if (not b) `xor` isElem
             then display msgFail
             else Nothing <$ do
           liftIO . putStrLn $ msgSuc ++ flag
-          modify mod
+          mod
         modifyAlways msg mod = Nothing <$ do
           liftIO . putStrLn $ msg
-          modify mod
+          mod
 
 xor :: Bool -> Bool -> Bool
 xor True  = not

@@ -3,7 +3,7 @@ module Completion (complete)
 
 import Data.Functor        ((<$>))
 import Data.Trie           (Trie)
-import Control.Monad.State (get)
+import Control.Lens        (use)
 import System.Console.Haskeline.Completion
 
 import qualified Data.ByteString.Char8 as BS
@@ -18,7 +18,7 @@ complete = completeQuotedWord Nothing "\"\'" (const $ return [] ) completeIdenti
 completeIdentifier = completeWord Nothing " \t" lookupCompletions
 
 lookupCompletions :: String -> ReplM [Completion]
-lookupCompletions s = completions s . removeReserveds . Env.defs <$> get
+lookupCompletions s = completions s . removeReserveds <$> use Env.defs
     where removeReserveds = Trie.delete Env.firstVar . Trie.delete Env.lastVar
 
 completions :: String -> Trie a  -> [Completion]
