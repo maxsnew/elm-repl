@@ -47,6 +47,7 @@ Executable elm-repl
                        process,
                        parsec >= 3.0,
                        filepath,
-                       bytestring-trie
+                       bytestring-trie,
+                       lens
 
   ghc-options:         -fwarn-unused-imports
