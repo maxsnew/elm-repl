@@ -4,7 +4,6 @@ module Command (runCommand)
 import Control.Lens
 import Data.Functor             ((<$>), (<$))
 import Control.Monad.Trans      (liftIO)
-import Control.Monad.State      (modify)
 import System.Exit              (ExitCode, exitSuccess)
 import Text.Parsec hiding (getInput)
 
@@ -46,8 +45,8 @@ handleCommand command =
       RemoveFlag flag ->
         modifyIfPresent False flag "Removed flag " "No such flag."       (Env.flags %= List.delete flag)
 
-      Reset -> modifyAlways "Environment Reset" (modify $ Env.empty . (view Env.compilerPath))
-      ClearFlags -> modifyAlways "All flags cleared" $ Env.flags .= []
+      Reset      -> modifyAlways "Environment Reset" (id %= Env.empty . (view Env.compilerPath))
+      ClearFlags -> modifyAlways "All flags cleared" (Env.flags .= [])
 
   where display msg = Nothing <$ (liftIO . putStrLn $ msg)
         modifyIfPresent b flag msgSuc msgFail mod = do

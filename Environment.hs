@@ -36,26 +36,26 @@ toElm env = unlines $ "module Repl where" : decls
     where decls = concatMap Trie.elems . map (env^.) $ [ imports, adts, defs ]
 
 insert :: String -> Repl -> Repl
-insert str env
+insert str
     | List.isPrefixOf "import " str = 
       let name = BS.pack . getFirstCap . words $ str
           getFirstCap (token@(c:_):rest) = if Char.isUpper c
                                            then token
                                            else getFirstCap rest
           getFirstCap _ = str
-      in  noDisplay $ env & imports %~ Trie.insert name str
+      in  noDisplay . (imports %~ Trie.insert name str)
 
     | List.isPrefixOf "data " str =
         let name = BS.pack . takeWhile (/=' ') . drop 5 $ str
-        in  noDisplay $ env & adts %~ Trie.insert name str
+        in  noDisplay . (adts %~ Trie.insert name str)
             
     | otherwise =
         case break (=='=') str of
-          (_,"") -> display str env
+          (_,"") -> display str
           (beforeEquals, _:c:_)
-              | Char.isSymbol c || hasLet beforeEquals || hasBrace beforeEquals -> display str env
+              | Char.isSymbol c || hasLet beforeEquals || hasBrace beforeEquals -> display str
               | otherwise -> let name = declName $ beforeEquals
-                             in  define (BS.pack name) str (display name env)
+                             in  define (BS.pack name) str . display name
           _ -> error "Environment.hs: Case error. Submit bug report."
         where
           declName pattern =
